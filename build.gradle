@@ -1,0 +1,140 @@
+buildscript {
+    repositories {
+        maven {
+            name 'JFrog OSS snapshot repo'
+            url  'https://oss.jfrog.org/oss-snapshot-local/'
+        }
+        jcenter()
+    }
+ 
+    dependencies {
+        classpath 'me.champeau.gradle:antlr4-gradle-plugin:0.1.1-SNAPSHOT'
+    }
+}
+ 
+plugins {
+      id 'jacoco'
+      id 'com.github.kt3k.coveralls' version '2.8.2'
+    }
+
+repositories {
+    mavenCentral()
+    jcenter()
+}
+
+apply plugin: 'java'
+apply plugin: 'me.champeau.gradle.antlr4'
+apply plugin: 'maven'
+apply plugin: 'signing'
+
+group = "com.github.almondbranch"
+archivesBaseName = "amphibian"
+version = "1.0.0"
+
+dependencies {
+    compile 'org.antlr:antlr4:4.7'
+    testCompile "junit:junit:4.12", "org.junit.jupiter:junit-jupiter-api:5.1.0-M1"
+}
+
+task wrapper(type: Wrapper) {
+	gradleVersion = '4.3.1'
+}
+
+antlr4 {
+    source = file('src/main/antlr4')
+    output = file('build/generated-src/parser')
+    extraArgs = ['-visitor', '-package', 'com.github.almondbranch.amphibian']
+}
+ 
+compileJava.dependsOn antlr4
+ 
+sourceSets.main.java.srcDirs += antlr4.output
+ 
+configurations {
+    compile.extendsFrom antlr4
+}
+
+jacocoTestReport {
+    reports {
+        xml.enabled = true // coveralls plugin depends on xml format report
+        html.enabled = true
+    }
+}
+
+test {
+    testLogging.showStandardStreams = true
+}
+
+task javadocJar(type: Jar) {
+    classifier = 'javadoc'
+    from javadoc
+}
+
+task sourcesJar(type: Jar) {
+    classifier = 'sources'
+    from sourceSets.main.allSource
+}
+
+artifacts {
+    archives javadocJar, sourcesJar
+}
+
+//Make sure only to add deployment related tasks if credentials are present
+def isRunningWithCredentials = hasProperty("ossrhUsername") && hasProperty("ossrhPassword")
+
+if (isRunningWithCredentials)
+{
+  signing {
+      sign configurations.archives
+  }
+}
+
+if (isRunningWithCredentials)
+{
+  uploadArchives {
+    repositories {
+      mavenDeployer {
+        beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+
+        repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
+    	  authentication(userName: ossrhUsername, password: ossrhPassword)
+        }
+
+        snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots/") {
+	  authentication(userName: ossrhUsername, password: ossrhPassword)
+        }
+
+        pom.project {
+	  name 'amphibian'
+	  packaging 'jar'
+	  // optionally artifactId can be defined here 
+	  description 'Allows a direct call to a main(String[] args) method using an unparsed string containing the arguments.'
+	  url 'https://github.com/AlmondBranch/amphibian'
+
+	  scm {
+	    connection 'scm:git:git://github.com/AlmondBranch/amphibian.git'
+	    developerConnection 'scm:git:ssh://github.com/AlmondBranch/amphibian.git'
+	    url 'https://github.com/AlmondBranch/amphibian.git'
+	  }
+
+	  licenses {
+	    license {
+	      name 'MIT License'
+	      url 'https://opensource.org/licenses/MIT'
+	    }
+	  }
+
+	  developers {
+	    developer {
+	      name 'Scott Haney'
+	      organization 'AlmondBranch'
+	      email 'emailalmondbranch@gmail.com'
+	    }
+	  }
+        }
+      }
+    }
+  }
+}
+
+
