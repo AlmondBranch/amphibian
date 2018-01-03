@@ -10,9 +10,10 @@ public class DockerfileHandler {
         CommonTokenStream tokens = new CommonTokenStream(lexer);
 
         DockerfileParser parser = new DockerfileParser(tokens);
-	ParseTree parseTree = parser.input();
+	//ParseTree parseTree = parser.input();
 
 	DockerfileVisitorImpl visitor = new DockerfileVisitorImpl();
-        return visitor.visit(parseTree);
+	return "";
+        //return visitor.visit(parseTree);
     }
 }
