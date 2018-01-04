@@ -1,12 +1,17 @@
 grammar Dockerfile;
 
+argLine      : ARG argName '=' argValue;
 fromLine     : FROM image (':' imageTag | '@' imageDigest)? (AS imageName)?;
+
+argName : Identifier;
+argValue : Identifier;
 
 image    : Identifier;
 imageTag     : Identifier;
 imageDigest  : LetterOrDigit+;
 imageName    : Identifier;
 
+ARG  : A R G;
 FROM : F R O M;
 AS   : A S;
 
